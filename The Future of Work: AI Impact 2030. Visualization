@@ -1,0 +1,60 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# Load data
+df = pd.read_csv('AI_Impact_on_Jobs_2030.csv')
+
+st.set_page_config(page_title="AI Future of Work 2030", layout="wide")
+st.title("🤖 The Future of Work: AI & Automation Impact Dashboard")
+
+# Sidebar Filters
+st.sidebar.header("Filter Data")
+edu_filter = st.sidebar.multiselect("Select Education Level:", 
+                                    options=df["Education_Level"].unique(), 
+                                    default=df["Education_Level"].unique())
+
+risk_filter = st.sidebar.multiselect("Select Risk Category:", 
+                                     options=df["Risk_Category"].unique(), 
+                                     default=df["Risk_Category"].unique())
+
+filtered_df = df[(df["Education_Level"].isin(edu_filter)) & (df["Risk_Category"].isin(risk_filter))]
+
+# KPI Metrics
+col1, col2, col3 = st.columns(3)
+col1.metric("Average AI Exposure", f"{filtered_df['AI_Exposure_Index'].mean():.2f}")
+col2.metric("Avg Automation Prob.", f"{filtered_df['Automation_Probability_2030'].mean():.2%}")
+col3.metric("Avg Salary", f"${filtered_df['Average_Salary'].mean():,.0f}")
+
+# Layout: 2 Columns
+c1, c2 = st.columns(2)
+
+with c1:
+    st.subheader("Salary vs. Automation Probability")
+    fig1 = px.scatter(filtered_df, x="Average_Salary", y="Automation_Probability_2030", 
+                     color="Risk_Category", hover_name="Job_Title",
+                     trendline="ols", template="plotly_white")
+    st.plotly_chart(fig1, use_container_width=True)
+
+with c2:
+    st.subheader("AI Exposure by Education Level")
+    fig2 = px.box(filtered_df, x="Education_Level", y="AI_Exposure_Index", 
+                 points="all", color="Education_Level")
+    st.plotly_chart(fig2, use_container_width=True)
+
+# Bottom Row
+c3, c4 = st.columns(2)
+
+with c3:
+    st.subheader("Job Risk Distribution")
+    fig3 = px.pie(filtered_df, names='Risk_Category', hole=0.4)
+    st.plotly_chart(fig3, use_container_width=True)
+
+with c4:
+    st.subheader("Top High-Growth / High-Risk Roles")
+    top_jobs = filtered_df.nlargest(10, 'Tech_Growth_Factor')
+    fig4 = px.bar(top_jobs, x='Tech_Growth_Factor', y='Job_Title', orientation='h', color='AI_Exposure_Index')
+    st.plotly_chart(fig4, use_container_width=True)
+
+st.write("### Raw Data Preview")
+st.dataframe(filtered_df.head(10))
